@@ -1,52 +1,39 @@
-import socket
-import json
-from FileUtils import AvailableFile, File, Chunk
-import threading
-import os
+from fileServer import FileServer
+from fileClient import FileClient
+from utils import *
+import sys
 
-available_files = {}
-shared_files = []
+fileServer = FileServer()
+fileClient = FileClient(fileServer.send_available_files)
 
-def initialize_files():
-    for filename in os.listdir('shared_files/'):
-        shared_files.append(File(filename))
+while True:
+    print_header("AVAILABLE COMMANDS")
 
-def receive_file_definition(message):
-    source, dict = message.split('|')
-    file_list = json.loads(dict)
-    for file in file_list:
-        if file['checksum'] in available_files:
-            available_files[file['checksum']].addPeer(source)
-        else:
-            available_files[file['checksum']] = AvailableFile (file['name'], file['checksum'], file['chunk_size'], source)
+    commands = ["List available files", "Add file", "List shared files", "Broadcast available files", "Quit"]
 
-def send_discovery_request():
-    pass
+    # if total_unread:
+    #     commands[1] = "Send message (" + change_style(str(total_unread) + " unread messages", "green") + ")"
 
-def receive_discovery():
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        s.bind((SELF_IP, DISCOVERY_PORT))
-        s.listen()
+    for i, command in enumerate(commands):
+        print("\t", change_style(str(i + 1) + ")", 'bold'), " ", command)
 
-        while True:
-            conn, addr = s.accept()
-            with conn:
-                message = ""
-                while True:
-                    data = conn.recv(1024)
-                    if not data:
-                        #Handle message
-                        conn.close()
-                        break
-                    message = message + data.decode('utf_8')
-
-def listen_discovery(self):
-    discovery_thread = threading.Thread(target=self.receive_discovery)
-    discovery_thread.setDaemon(True)
-    discovery_thread.start()
-
-
-
-
-
+    option = input("\n" + change_style("Please enter your command", 'underline') + ": ")
+    if option == "1":
+        clear()
+        enter_continue()
+    elif option == "2":
+        clear()
+    elif option == "3":
+        clear()
+        enter_continue()
+    elif option == "4":
+        clear()
+        print_header("DISCOVER NEW USERS")
+        ip = input("\n" + change_style("Enter user IP for discovery", 'underline') + ": ")
+    elif option == "5":
+        clear()
+        print_notification("Good bye " + server.username + " \n\n")
+        sys.exit(0)
+    else:
+        clear()
+        print_error("Invalid option")
