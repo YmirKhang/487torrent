@@ -14,9 +14,11 @@ def get_ip():
 
 
 SELF_IP = get_ip()
-DISCOVERY_PORT = 5000
-FILE_PORT = 5001
-ACK_PORT = 5002
+DISCOVERY_PORT = 5000  # TCP
+CHUNK_PORT = 5001  # TCP
+FILE_PORT = 5001  # UDP
+ACK_PORT = 5001  # UDP
+
 SUBNET = SELF_IP[:SELF_IP.rfind('.')]
 
 MESSAGE_TYPES = {"request": 0, "response": 1}

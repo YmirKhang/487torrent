@@ -9,7 +9,8 @@ fileClient = FileClient(fileServer.send_available_files)
 while True:
     print_header("AVAILABLE COMMANDS")
 
-    commands = ["List available files", "Add file", "List shared files", "Broadcast available files", "Quit"]
+    commands = ["List active downloads", "List available files", "Add file", "List shared files",
+                "Broadcast available files", "Quit"]
 
     # if total_unread:
     #     commands[1] = "Send message (" + change_style(str(total_unread) + " unread messages", "green") + ")"

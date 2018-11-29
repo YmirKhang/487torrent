@@ -4,11 +4,12 @@ import hashlib
 
 CHUNK_SIZE = 1480
 
+
 class File():
     def __init__(self, name):
         self.name = name
         self.chunk_size = math.ceil(os.path.getsize(self.get_path()))
-        self.reader = open(self.get_path(),'rb')
+        self.reader = open(self.get_path(), 'rb')
         self.checksum = self.calculate_md5()
 
     def get_dict(self):
@@ -28,11 +29,13 @@ class File():
         self.reader.seek(CHUNK_SIZE * offset)
         return self.reader.read(CHUNK_SIZE)
 
+
 class Chunk():
     def __init__(self, offset):
         self.offset = offset
         self.data = None
         self.status = 'new'
+
 
 class AvailableFile():
     def __init__(self, name, checksum, chunk_size, first_peer):
@@ -42,10 +45,10 @@ class AvailableFile():
         self.peers = [first_peer]
         self.status = 'discovered'
 
-    def addPeer(self, ip):
+    def add_peer(self, ip):
         self.peers.append(ip)
 
-    def startDownload(self):
+    def start_download(self):
         self.chunks = [Chunk(i) for i in range(self.chunk_size)]
         self.status = 'downloading'
 
@@ -53,13 +56,7 @@ class AvailableFile():
         return len([1 for chunk in self.chunks if chunk.status == 'in_flight'])
 
     def check_if_finished(self):
-        return all( chunk.status == 'finished' for chunk in self.chunks )
+        return all(chunk.status == 'finished' for chunk in self.chunks)
 
-    def get_batch_new_chunks(self, count=10 ):
+    def get_batch_new_chunks(self, count=10):
         return [chunk for chunk in self.chunks if chunk.status == 'new'][:count]
-
-
-
-
-
-

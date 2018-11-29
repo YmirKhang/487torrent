@@ -11,7 +11,7 @@ class FileClient():
         self.available_files = {}
         self.send_file_callback = send_file_callback
 
-    def receive_file_definition(self, message):
+    def handle_file_definition(self, message):
         source, type, dict = message.split('|')
         file_list = json.loads(dict)
         for file in file_list:
@@ -36,7 +36,7 @@ class FileClient():
                     while True:
                         data = conn.recv(1024)
                         if not data:
-                            # Handle message
+                            self.handle_file_definition(message)
                             conn.close()
                             break
                         message = message + data.decode('utf_8')
