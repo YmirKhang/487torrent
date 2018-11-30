@@ -1,6 +1,16 @@
 import os
 import hashlib
+import socket
 
+def send_packet(host, port, message):
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(5)
+            s.connect((host, port))
+            s.send(message.encode('utf-8'))
+            s.close()
+    except:
+        print("Error while sending packet: " + message)
 
 def clear():
     os.system('clear')

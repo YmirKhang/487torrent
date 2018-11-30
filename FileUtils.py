@@ -36,7 +36,6 @@ class Chunk():
         self.data = None
         self.status = 'new'
 
-
 class AvailableFile():
     def __init__(self, name, checksum, chunk_size, first_peer):
         self.name = name
@@ -44,6 +43,7 @@ class AvailableFile():
         self.chunk_size = chunk_size
         self.peers = [first_peer]
         self.status = 'discovered'
+        self.chunks = None
 
     def add_peer(self, ip):
         self.peers.append(ip)
