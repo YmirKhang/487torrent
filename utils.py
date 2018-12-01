@@ -1,6 +1,6 @@
 import os
-import hashlib
 import socket
+
 
 def send_packet(host, port, message):
     try:
@@ -11,6 +11,7 @@ def send_packet(host, port, message):
             s.close()
     except:
         print("Error while sending packet: " + message)
+
 
 def clear():
     os.system('clear')
@@ -49,9 +50,11 @@ def print_notification(str):
     print("\a \033[s \033[100F \033[2K \r {} {}  \033[u".format(change_style(" [!] ", "bold"),
                                                                 change_style(str + " ", "success")), end="")
 
+
 def print_error(str):
     print("\a \033[s \033[100F \033[2K \r {} {}  \033[u".format(change_style(" [x] ", "bold"),
                                                                 change_style(str + " ", "error")), end="")
+
 
 def print_header(header):
     print(change_style("\n\n=== " + header + " ===\n\n", 'header'))

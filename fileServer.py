@@ -2,7 +2,7 @@ import threading
 import os
 import socket
 import json
-from FileUtils import File
+from fileUtils import File
 from _thread import *
 from config import *
 from shutil import copyfile
@@ -66,7 +66,7 @@ class FileServer:
                         data = conn.recv(1024)
                         if not data:
                             self.handle_chunk_request(message)
-                            #conn.send(b"OK")
+                            # conn.send(b"OK")
                             conn.close()
                             break
                         message = message + data.decode('utf_8')
@@ -78,12 +78,14 @@ class FileServer:
 
     def add_file(self, filepath):
         if os.path.isfile(filepath):
-            copyfile(filepath, 'shared_files/')
-            self.shared_files.append(File(os.path.basename(filepath)))
+            filename = os.path.basename(filepath)
+            copyfile(filepath, 'shared_files/' + filename)
+            file = File(filename)
+            self.shared_files[file.checksum] = file
             self.broadcast_available_files()
-            print("File added successfully: " + os.path.basename(filepath))
+            return True
         else:
-            print("Not a valid file")
+            return False
 
     def broadcast_available_files(self):
         for i in range(1, 255):
@@ -92,7 +94,7 @@ class FileServer:
                 self.send_available_files(target_ip, MESSAGE_TYPES['request'])
 
     def send_available_files(self, target_ip, type):
-        message = SELF_IP + "|" + type + "|" + json.dumps([data.get_dict() for data in self.shared_files])
+        message = SELF_IP + "|" + str(type) + "|" + json.dumps([data.get_dict() for data in self.shared_files.values()])
         start_new_thread(self.send_packet, (target_ip, DISCOVERY_PORT, message,))
 
     def send_packet(self, host, port, message):
@@ -103,7 +105,8 @@ class FileServer:
                 s.send(message.encode('utf-8'))
                 s.close()
         except:
-            print("Error while sending packet: " + message)
+            pass
+
 
 class SChunk:
     def __init__(self, file_hash, offset, data):
@@ -176,7 +179,7 @@ class FileServerConnection:
             await asyncio.sleep(random.random())
             await self.try_send(chunk, count)
         else:
-            #print("Try chunk #" + str(chunk) + " for " + str(self.try_count + 1 - count) + " times")
+            # print("Try chunk #" + str(chunk) + " for " + str(self.try_count + 1 - count) + " times")
             chunk.status = "flight"
             self.inc_flight()
             self.transport.sendto(chunk.get_bytes())
@@ -217,5 +220,3 @@ class FileServerConnection:
         self.chunks.pop(hash + "|" + chunk_num, None)
         self.dec_flight()
         self.check_if_complete()
-
-

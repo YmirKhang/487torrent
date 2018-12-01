@@ -14,7 +14,7 @@ class File():
 
     def get_dict(self):
         dict = vars(self)
-        del dict['reader']
+        dict.pop("reader", None)
         return dict
 
     def get_path(self):

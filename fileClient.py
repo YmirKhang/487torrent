@@ -1,7 +1,7 @@
 import queue
 import socket
 import json
-from FileUtils import AvailableFile, File, Chunk
+from fileUtils import AvailableFile, File, Chunk
 import threading
 import asyncio
 from config import *
