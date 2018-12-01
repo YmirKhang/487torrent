@@ -41,12 +41,12 @@ class AvailableFile():
         self.name = name
         self.checksum = checksum
         self.chunk_size = chunk_size
-        self.peers = [first_peer]
+        self.peers = {first_peer}
         self.status = 'discovered'
         self.chunks = None
 
     def add_peer(self, ip):
-        self.peers.append(ip)
+        self.peers.add(ip)
 
     def start_download(self):
         self.chunks = [Chunk(i) for i in range(self.chunk_size)]

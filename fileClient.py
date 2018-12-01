@@ -14,6 +14,9 @@ class FileClient():
         self.available_files = {}
         self.send_file_callback = send_file_callback
 
+    def start(self):
+        self.listen_discovery()
+
     def handle_file_definition(self, message):
         source, type, dict = message.split('|')
         file_list = json.loads(dict)
@@ -44,13 +47,14 @@ class FileClient():
                             break
                         message = message + data.decode('utf_8')
 
-    def start_download(self, checksum):
-        file = self.available_files[checksum]
-
     def listen_discovery(self):
         discovery_thread = threading.Thread(target=self.receive_discovery)
         discovery_thread.setDaemon(True)
         discovery_thread.start()
+
+    def start_download(self, checksum):
+        file = self.available_files[checksum]
+        file.status = "downloading"
 
 
 class FileClientConnection:
@@ -68,8 +72,6 @@ class FileClientConnection:
         for peer in self.file.peers:
             chunks = self.file.get_batch_new_chunks(self.file.chunk_size // len(self.file.peers))
             self.send_chunk_request(peer, chunks)
-
-
 
     async def queue_handler(self):
         while True:
@@ -94,7 +96,7 @@ class FileClientConnection:
         message = data.decode()
         hash, offset, *payload = message.split("|")
         payload = "".join(payload)
-        return_msg = hash + "|" + offset + "|" + str((self.window_size-self.buffer.qsize()) // len(self.file.peers))
+        return_msg = hash + "|" + offset + "|" + str((self.window_size - self.buffer.qsize()) // len(self.file.peers))
         self.buffer.put((offset, payload))
         self.transport.sendto(return_msg.encode(), addr)
 

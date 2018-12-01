@@ -26,6 +26,8 @@ def enter_continue():
 def change_style(str, style):
     if style == "green":
         return "\033[92m{}\033[00m".format(str)
+    elif style == "blue":
+        return "\033[34m{}\033[00m".format(str)
     elif style == "header":
         return "\033[34m \033[01m{}\033[00m".format(str)
     elif style == "bold":

@@ -1,6 +1,5 @@
 import threading
 import os
-import socket
 import json
 from fileUtils import File
 from _thread import *
@@ -18,7 +17,8 @@ class FileServer:
         self.initialize_files()
 
     def start(self):
-        self.broadcast_available_files()
+        self.broadcast_shared_files()
+        self.listen_chunk_request()
 
     def initialize_files(self):
         for filename in os.listdir('shared_files/'):
@@ -87,13 +87,14 @@ class FileServer:
         else:
             return False
 
-    def broadcast_available_files(self):
+    def broadcast_shared_files(self):
         for i in range(1, 255):
             target_ip = SUBNET + "." + str(i)
-            if target_ip != SELF_IP:
-                self.send_available_files(target_ip, MESSAGE_TYPES['request'])
+            # TODO: Uncommented for debug purpose
+            # if target_ip != SELF_IP:
+            self.send_shared_files(target_ip, MESSAGE_TYPES['request'])
 
-    def send_available_files(self, target_ip, type):
+    def send_shared_files(self, target_ip, type):
         message = SELF_IP + "|" + str(type) + "|" + json.dumps([data.get_dict() for data in self.shared_files.values()])
         start_new_thread(self.send_packet, (target_ip, DISCOVERY_PORT, message,))
 
