@@ -1,6 +1,7 @@
 import os
 import math
 import hashlib
+from config import FILE_PATH
 
 CHUNK_SIZE = 1480
 
@@ -18,7 +19,7 @@ class File():
         return dict
 
     def get_path(self):
-        return './shared_files/' + self.name
+        return FILE_PATH + self.name
 
     def calculate_md5(self):
         checksum = hashlib.md5(self.reader.read()).hexdigest()
@@ -44,6 +45,12 @@ class AvailableFile():
         self.peers = {first_peer}
         self.status = 'discovered'
         self.chunks = None
+
+    def save_to_shared(self):
+        writer = open(FILE_PATH + self.name, 'wb')
+        for chunk in self.chunks:
+            writer.write(chunk.data)
+        writer.close()
 
     def add_peer(self, ip):
         self.peers.add(ip)

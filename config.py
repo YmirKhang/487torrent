@@ -13,6 +13,7 @@ def get_ip():
     return IP
 
 
+FILE_PATH = './shared_files/'
 SELF_IP = get_ip()
 DISCOVERY_PORT = 5000  # TCP
 CHUNK_PORT = 5001  # TCP

@@ -3,6 +3,7 @@ import socket
 import json
 from fileUtils import AvailableFile, File, Chunk
 import threading
+from threading import Lock
 import asyncio
 from config import *
 from utils import send_packet
@@ -12,7 +13,9 @@ from _thread import start_new_thread
 class FileClient():
     def __init__(self, send_file_callback):
         self.available_files = {}
+        self.active_peers = 0
         self.send_file_callback = send_file_callback
+        self.lock = Lock()
 
     def start(self):
         self.listen_discovery()
@@ -47,6 +50,25 @@ class FileClient():
                             break
                         message = message + data.decode('utf_8')
 
+    def send_chunk_requests(self):
+        while True:
+            for file in self.available_files.values():
+                if file.status == "downloading":
+                    for peer in file.peers:
+                        requested_chunks = file.get_batch_new_chunks()
+                        self.send_chunk_request(peer, file.checksum, requested_chunks)
+
+    def send_chunk_request(self, target_ip, checksum, chunks):
+        message = SELF_IP + "|" + checksum + "|" + json.dumps([chunk.offset for chunk in chunks])
+        for chunk in chunks:
+            chunk.status = "pending"
+        start_new_thread(send_packet, (target_ip, CHUNK_PORT, message,))
+
+    def start_client(self):
+        chunk_request_thread = threading.Thread(target=self.send_chunk_requests())
+        chunk_request_thread.setDaemon(True)
+        chunk_request_thread.start()
+
     def listen_discovery(self):
         discovery_thread = threading.Thread(target=self.receive_discovery)
         discovery_thread.setDaemon(True)
@@ -55,15 +77,28 @@ class FileClient():
     def start_download(self, checksum):
         file = self.available_files[checksum]
         file.status = "downloading"
+        file.start_download()
+        self.lock.acquire()
+        self.active_peers += len(file.peers)
+        self.lock.release()
+
+    def end_download(self, checksum):
+        file = self.available_files[checksum]
+        file.status = "finished"
+        self.lock.acquire()
+        self.active_peers -= len(file.peers)
+        self.lock.release()
+        file.save_to_shared()
 
 
 class FileClientConnection:
-    def __init__(self, file):
+    def __init__(self, file, client):
         self.file = file
         self.file.start_download()
         self.buffer = queue.Queue(maxsize=DEFAULT_WINDOW_SIZE)
         self.window_size = DEFAULT_WINDOW_SIZE
         self.transport = None
+        self.client = client
 
     def connection_made(self, transport):
         self.transport = transport
@@ -81,10 +116,10 @@ class FileClientConnection:
                 chunk.data = item[1]
                 chunk.status = "done"
                 if len([1 for chnk in self.file.chunks if chnk.status != "done"]) == 0:
-                    pass
-                    # TODO: Dosyayı toplayıp ismiyle kaydet ve shared_files a taşı
+                    self.client.end_download(self.file.checksum)
             except:
                 pass
+                # queue is empty here
             await asyncio.sleep(DRAINAGE)
 
     async def check_packets(self):
@@ -94,9 +129,12 @@ class FileClientConnection:
 
     def datagram_received(self, data, addr):
         message = data.decode()
-        hash, offset, *payload = message.split("|")
+        checksum, offset, *payload = message.split("|")
         payload = "".join(payload)
-        return_msg = hash + "|" + offset + "|" + str((self.window_size - self.buffer.qsize()) // len(self.file.peers))
+        self.client.lock.acquire()
+        rwindow = str((self.window_size - self.buffer.qsize()) // len(self.client.active_peers))
+        return_msg = checksum + "|" + offset + "|" + rwindow
+        self.client.lock.release()
         self.buffer.put((offset, payload))
         self.transport.sendto(return_msg.encode(), addr)
 
