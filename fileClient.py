@@ -61,7 +61,7 @@ class FileClient():
     def send_chunk_request(self, target_ip, checksum, chunks):
         message = SELF_IP + "|" + checksum + "|" + json.dumps([chunk.offset for chunk in chunks])
         for chunk in chunks:
-            chunk.status = "pending"
+            chunk.status = "in_flight"
         start_new_thread(send_packet, (target_ip, CHUNK_PORT, message,))
 
     def start_client(self):
@@ -90,11 +90,8 @@ class FileClient():
         self.lock.release()
         file.save_to_shared()
 
-
 class FileClientConnection:
-    def __init__(self, file, client):
-        self.file = file
-        self.file.start_download()
+    def __init__(self, client):
         self.buffer = queue.Queue(maxsize=DEFAULT_WINDOW_SIZE)
         self.window_size = DEFAULT_WINDOW_SIZE
         self.transport = None
@@ -114,7 +111,9 @@ class FileClientConnection:
                 item = self.buffer.get(block=False)
                 chunk = self.file.chunks[item[0]]
                 chunk.data = item[1]
+                chunk.lock.acquire()
                 chunk.status = "done"
+                chunk.lock.release()
                 if len([1 for chnk in self.file.chunks if chnk.status != "done"]) == 0:
                     self.client.end_download(self.file.checksum)
             except:
@@ -143,3 +142,18 @@ class FileClientConnection:
         for chunk in chunks:
             chunk.status = "pending"
         start_new_thread(send_packet, (target_ip, CHUNK_PORT, message,))
+
+async def start_listener(client):
+    loop = asyncio.get_running_loop()
+    listener = FileClientConnection(client)
+    transport, protocol = await loop.create_datagram_endpoint(
+        lambda: listener,
+        local_addr=('192.168.0.39', ACK_PORT))
+    asyncio.ensure_future(listener.queue_handler())
+    try:
+        await asyncio.sleep(3600)  # Serve for 1 hour.
+    finally:
+        transport.close()
+
+def start_download_queue(client):
+    start_new_thread(asyncio.run,(start_listener(client),))

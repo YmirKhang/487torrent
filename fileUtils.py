@@ -2,6 +2,10 @@ import os
 import math
 import hashlib
 from config import FILE_PATH
+import asyncio
+import random
+from _thread import start_new_thread
+from threading import Lock
 
 CHUNK_SIZE = 1480
 
@@ -31,11 +35,12 @@ class File():
         return self.reader.read(CHUNK_SIZE)
 
 
-class Chunk():
+class Chunk:
     def __init__(self, offset):
         self.offset = offset
         self.data = None
         self.status = 'new'
+        self.lock = Lock()
 
 class AvailableFile():
     def __init__(self, name, checksum, chunk_size, first_peer):
@@ -65,5 +70,15 @@ class AvailableFile():
     def check_if_finished(self):
         return all(chunk.status == 'finished' for chunk in self.chunks)
 
+    async def check_chunks(self, chunks):
+        await asyncio.sleep(1)
+        for chunk in chunks:
+            chunk.lock.acquire()
+            if chunk.status == 'in_flight':
+                chunk.status = "new"
+            chunk.lock.release()
+
     def get_batch_new_chunks(self, count=10):
-        return [chunk for chunk in self.chunks if chunk.status == 'new'][:count]
+        pending = [chunk for chunk in self.chunks if chunk.status == 'new']
+        chunks = random.sample(pending, min(count, len(pending)))
+        start_new_thread(asyncio.run,(self.check_chunks(chunks),))

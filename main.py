@@ -1,7 +1,7 @@
 import sys
 import time
 
-from fileClient import FileClient
+from fileClient import FileClient, start_download_queue
 from fileServer import FileServer
 from utils import *
 
@@ -9,6 +9,8 @@ fileServer = FileServer()
 fileServer.start()
 fileClient = FileClient(fileServer.send_shared_files)
 fileClient.start()
+start_download_queue(fileClient)
+
 
 clear()
 while True:
