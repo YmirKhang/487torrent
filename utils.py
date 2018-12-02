@@ -9,8 +9,10 @@ def send_packet(host, port, message):
             s.connect((host, port))
             s.send(message.encode('utf-8'))
             s.close()
-    except:
-        print("Error while sending packet: " + message)
+    except Exception as ex:
+        #print("Error while sending packet: " + message)
+        #print(ex.__str__() + " " + str(port))
+        pass
 
 
 def clear():

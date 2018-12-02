@@ -11,7 +11,6 @@ fileClient = FileClient(fileServer.send_shared_files)
 fileClient.start()
 start_download_queue(fileClient)
 
-
 clear()
 while True:
     print_header("AVAILABLE COMMANDS")
@@ -50,7 +49,7 @@ while True:
         print_header("UPLOADS")
         print(fileServer.active_connections)
         print_header("DOWNLOADS")
-        print([x for x in fileClient.available_files.values() if x.status == "downloading"])
+        print([x.status + " " + x.name for x in fileClient.available_files.values() if x.status == "downloading"])
         enter_continue()
     elif option == "3":
         clear()

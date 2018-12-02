@@ -9,18 +9,16 @@ from threading import Lock
 
 CHUNK_SIZE = 1480
 
-
-class File():
+class File:
     def __init__(self, name):
         self.name = name
-        self.chunk_size = math.ceil(os.path.getsize(self.get_path()))
+        self.chunk_size = math.ceil(os.path.getsize(self.get_path()) / CHUNK_SIZE)
         self.reader = open(self.get_path(), 'rb')
         self.checksum = self.calculate_md5()
 
     def get_dict(self):
         dict = vars(self)
-        dict.pop("reader", None)
-        return dict
+        return {x: dict[x] for x in dict if x != "reader"}
 
     def get_path(self):
         return FILE_PATH + self.name
@@ -31,9 +29,11 @@ class File():
         return checksum
 
     def get_chunk(self, offset):
+        print(self.name)
+        print(self.checksum)
+        print(self.get_path())
         self.reader.seek(CHUNK_SIZE * offset)
         return self.reader.read(CHUNK_SIZE)
-
 
 class Chunk:
     def __init__(self, offset):
@@ -79,6 +79,7 @@ class AvailableFile():
             chunk.lock.release()
 
     def get_batch_new_chunks(self, count=10):
-        pending = [chunk for chunk in self.chunks if chunk.status == 'new']
+        pending = [chunk for chunk in self.chunks if chunk.status == "new"]
         chunks = random.sample(pending, min(count, len(pending)))
         start_new_thread(asyncio.run,(self.check_chunks(chunks),))
+        return chunks
