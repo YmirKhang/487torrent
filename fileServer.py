@@ -44,7 +44,7 @@ class FileServer:
             start_new_thread(asyncio.run, (self.start_connection(file_connection, source,),))
 
     async def start_connection(self, connection, source):
-        loop = asyncio.get_running_loop()
+        loop = asyncio.get_event_loop()
         transport, protocol = await loop.create_datagram_endpoint(
             lambda: connection,
             remote_addr=(source, FILE_PORT))
@@ -154,12 +154,12 @@ class FileServerConnection:
         chunk = SChunk(file_hash, offset, data)
         self.chunks[chunk.get_key()] = chunk
         if self.started:
-            asyncio.create_task(self.try_send(chunk, TRY_COUNT))
+            asyncio.ensure_future(self.try_send(chunk, TRY_COUNT))
 
     def start(self):
         self.started = True
         for chunk in list(self.chunks.values()):
-            asyncio.create_task(self.try_send(chunk, TRY_COUNT))
+            asyncio.ensure_future(self.try_send(chunk, TRY_COUNT))
 
     async def probe(self):
         self.window_lock.acquire()
@@ -212,7 +212,7 @@ class FileServerConnection:
 
         hash, chunk_num, window_size = message.split('|')
         self.set_window_size(int(window_size))
-
+        print("ACK for: " + chunk_num)
         if chunk_num == "-1":
             print("Probe returned")
             return

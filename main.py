@@ -45,12 +45,36 @@ while True:
             print("\t" + change_style("Please enter a file path", "red"))
         enter_continue()
     elif option == "2":
-        clear()
-        print_header("UPLOADS")
-        print(fileServer.active_connections)
-        print_header("DOWNLOADS")
-        print([x.status + " " + x.name for x in fileClient.available_files.values() if x.status == "downloading"])
-        enter_continue()
+        while True:
+            clear()
+            print_header("UPLOADS")
+            print('-' * 89)
+            print('| {0:s}| {1:s}| {2:s}| {3:s}|'.format("TARGET".ljust(20), "CHUNKS".ljust(20), "IN FLIGHT".ljust(20),
+                                                         "WINDOW SIZE".ljust(20)))
+            print('-' * 89)
+            for target, connection in fileServer.active_connections.items():
+                print('| {0:s}| {1:s}| {2:s}| {3:s}|'.format(target.ljust(20), str(len(connection.chunks)).ljust(20),
+                                                             str(connection.in_flight).ljust(20),
+                                                             str(connection.window_size).ljust(20)))
+                print('-' * 89)
+
+            print("\n\n")
+            print_header("DOWNLOADS")
+            print('-' * 89)
+            print('| {0:s}| {1:s}| {2:s}| {3:s}|'.format("FILE".ljust(20), "CHUNKS".ljust(20), "DOWNLOADED".ljust(20),
+                                                         "STATUS".ljust(20)))
+            print('-' * 89)
+            for file in fileClient.available_files.values():
+                if file.status != "discovered":
+                    print('| {0:s}| {1:s}| {2:s}| {3:s}|'.format(file.name.ljust(20), str(file.chunk_size).ljust(20),
+                                                                 str(len([1 for chunk in file.chunks if
+                                                                          chunk.status == 'done'])).ljust(20),
+                                                                 file.status.ljust(20)))
+                    print('-' * 89)
+            tmp = input(change_style("\n\nEmpty for refresh, enter 0 for exit: ", "bold"))
+            if tmp == "0":
+                clear()
+                break
     elif option == "3":
         clear()
         print_header("AVAILABLE FILES")
