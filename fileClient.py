@@ -26,14 +26,14 @@ class FileClient():
     def handle_file_definition(self, message):
         source, type, dict = message.split('|')
         file_list = json.loads(dict)
-        print_notification("Received " + str(len(file_list)) + " new files from :" + source)
+        print_notification("Received " + str(len(file_list)) + " new files from " + source)
         for file in file_list:
             if file['checksum'] in self.available_files:
                 self.available_files[file['checksum']].add_peer(source)
             else:
                 self.available_files[file['checksum']] = AvailableFile(file['name'], file['checksum'],
                                                                        file['chunk_size'], source)
-        if type == MESSAGE_TYPES["request"]:
+        if int(type) == MESSAGE_TYPES["request"]:
             self.send_file_callback(source, MESSAGE_TYPES["response"])
 
     def receive_discovery(self):
