@@ -58,7 +58,6 @@ while True:
                                                              str(connection.window_size).ljust(20)))
                 print('-' * 89)
 
-            print("\n\n")
             print_header("DOWNLOADS")
             print('-' * 89)
             print('| {0:s}| {1:s}| {2:s}| {3:s}|'.format("FILE".ljust(20), "CHUNKS".ljust(20), "DOWNLOADED".ljust(20),

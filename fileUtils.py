@@ -50,9 +50,9 @@ class AvailableFile():
         self.status = "finished"
         with open(FILE_PATH + self.name, 'wb') as writer:
             for chunk in self.chunks:
-                print("Writing chunk with offset:" + str(chunk.offset))
+                # print("Writing chunk with offset:" + str(chunk.offset))
                 writer.write(chunk.data)
-                print("successfully wrote")
+                # print("successfully wrote")
             writer.close()
 
     def add_peer(self, ip):
