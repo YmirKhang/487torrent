@@ -29,9 +29,6 @@ class File:
         return checksum
 
     def get_chunk(self, offset):
-        print(self.name)
-        print(self.checksum)
-        print(self.get_path())
         self.reader.seek(CHUNK_SIZE * offset)
         return self.reader.read(CHUNK_SIZE)
 

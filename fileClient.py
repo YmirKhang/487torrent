@@ -156,7 +156,7 @@ async def start_listener(client):
     listener = FileClientConnection(client)
     transport, protocol = await loop.create_datagram_endpoint(
         lambda: listener,
-        local_addr=('192.168.0.39', ACK_PORT))
+        local_addr=(SELF_IP, ACK_PORT))
     asyncio.ensure_future(listener.queue_handler())
     try:
         await asyncio.sleep(3600)  # Serve for 1 hour.

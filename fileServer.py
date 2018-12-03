@@ -44,12 +44,12 @@ class FileServer:
             start_new_thread(asyncio.run, (self.start_connection(file_connection, source,),))
 
     async def start_connection(self, connection, source):
-        loop = asyncio.new_event_loop()
+        loop = asyncio.get_running_loop()
         transport, protocol = await loop.create_datagram_endpoint(
             lambda: connection,
             remote_addr=(source, FILE_PORT))
         try:
-            await protocol.on_con_lost
+            await asyncio.sleep(3600)
         finally:
             transport.close()
 
@@ -132,7 +132,7 @@ class FileServerConnection:
         self.chunks = {}
         self.window_lock = threading.Lock()
         self.flight_lock = threading.Lock()
-        self.on_con_lost = loop.create_future()
+        #self.on_con_lost = loop.create_future()
         self.started = False
 
     def set_window_size(self, value):
@@ -200,7 +200,7 @@ class FileServerConnection:
 
     def connection_lost(self, exc):
         print("Connection closed")
-        self.on_con_lost.set_result(True)
+        #self.on_con_lost.set_result(True)
 
     def check_if_complete(self):
         if not bool(self.chunks):
