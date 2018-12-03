@@ -8,6 +8,8 @@ from shutil import copyfile
 import asyncio
 import random
 from utils import print_notification
+import base64
+
 
 class FileServer:
 
@@ -134,8 +136,7 @@ class SChunk:
         return self.file_hash + "|" + str(self.offset)
 
     def get_bytes(self):
-        return self.get_key().encode() + "|".encode() + self.data
-
+        return self.get_key().encode() + "|".encode() + base64.b64encode(self.data)
 
 class FileServerConnection:
     def __init__(self, loop):
@@ -184,13 +185,15 @@ class FileServerConnection:
             asyncio.ensure_future(self.try_send(chunk, TRY_COUNT))
 
     async def probe(self):
-        self.window_lock.acquire()
-        if self.window_size <= TOLERANCE:
-            # print("Probing")
-            self.transport.sendto("probe".encode())
-        self.window_lock.release()
-        await asyncio.sleep(1)
-        await self.probe()
+        try:
+            self.window_lock.acquire()
+            if self.window_size <= TOLERANCE:
+                self.transport.sendto("None|-1|probe".encode())
+            self.window_lock.release()
+            await asyncio.sleep(1)
+            await self.probe()
+        except:
+            pass
 
     async def try_send(self, chunk, count):
         if count == 0 or chunk.status == "done":
@@ -227,13 +230,11 @@ class FileServerConnection:
         # print('Error received:', exc)
 
     def connection_lost(self, exc):
-        # print("Connection closed")
         self.on_con_lost.set_result(True)
         self.ended = True
 
     def check_if_complete(self):
         if not bool(self.chunks):
-            # print("Done")
             self.transport.close()
 
     def datagram_received(self, data, addr):
@@ -241,11 +242,8 @@ class FileServerConnection:
 
         hash, chunk_num, window_size = message.split('|')
         self.set_window_size(int(window_size))
-        # print("ACK for: " + chunk_num)
         if chunk_num == "-1":
-            # print("Probe returned")
             return
-
         self.chunks[hash + "|" + chunk_num].status = "done"
         self.chunks.pop(hash + "|" + chunk_num, None)
         self.dec_flight()
