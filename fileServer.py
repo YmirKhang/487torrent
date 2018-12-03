@@ -97,7 +97,7 @@ class FileServer:
             copyfile(filepath, 'shared_files/' + filename)
             file = File(filename)
             self.shared_files[file.checksum] = file
-            self.broadcast_available_files()
+            self.broadcast_shared_files()
             return True
         else:
             return False
