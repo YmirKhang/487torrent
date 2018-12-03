@@ -34,17 +34,11 @@ class FileServer:
         chunk_list = json.loads(raw_chunks)
 
         is_new = source not in self.active_connections
-
+        if not is_new and self.active_connections[source].ended:
+            temp = self.active_connections[source]
+            del self.active_connections[source]
+            del temp
         self.active_connections[source] = FileServerConnection(self.loop)
-        # if is_new:
-        #     self.active_connections[source] = FileServerConnection(self.loop)
-        # elif self.active_connections[source].ended:
-        #     is_new = True
-        #     del self.active_connections[source]
-        #     self.active_connections[source] = FileServerConnection(self.loop)
-
-        # if source in self.active_connections and self.active_connections[source].ended:
-        #     del self.active_connections[source]
 
         file_connection = self.active_connections[source]
 
@@ -62,6 +56,8 @@ class FileServer:
         try:
             await asyncio.sleep(3600)
         finally:
+            del transport
+            del connection
             transport.close()
 
     def receive_chunk_request(self):
@@ -185,6 +181,8 @@ class FileServerConnection:
             asyncio.ensure_future(self.try_send(chunk, TRY_COUNT))
 
     async def probe(self):
+        if self.ended:
+            return
         try:
             self.window_lock.acquire()
             if self.window_size <= TOLERANCE:
@@ -196,6 +194,8 @@ class FileServerConnection:
             pass
 
     async def try_send(self, chunk, count):
+        if self.ended:
+            return
         if count == 0 or chunk.status == "done":
             self.chunks.pop(chunk.get_key(), None)
             self.check_if_complete()
