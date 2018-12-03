@@ -3,7 +3,7 @@
 ## Torrent File Sharing App
 - We've implemented the bonus utility.
 - This is the result of at least 15 hour pair programming.
-- Program parameters can be found in config file.
+- Program parameters can be found in config file with comments.
 
 ### Usage
 ```bash
