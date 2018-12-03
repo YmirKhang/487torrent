@@ -1,13 +1,11 @@
 import os
 import math
 import hashlib
-from config import FILE_PATH
+from config import FILE_PATH, CHUNK_SIZE
 import asyncio
 import random
 from _thread import start_new_thread
 from threading import Lock
-
-CHUNK_SIZE = 1480
 
 class File:
     def __init__(self, name):
