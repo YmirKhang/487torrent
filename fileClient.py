@@ -90,10 +90,13 @@ class FileClient():
 
     def end_download(self, checksum):
         file = self.available_files[checksum]
+        print("download ended")
         file.status = "finished"
         self.lock.acquire()
+        print("get lock")
         self.active_peers -= len(file.peers)
         self.lock.release()
+        print("release lock")
         file.save_to_shared()
         print("Download Finished for: " + self.available_files[checksum].name)
 
@@ -116,7 +119,9 @@ class FileClientConnection:
     async def queue_handler(self):
         while True:
             try:
+
                 item = self.buffer.get(block=False)
+                print("received " + str(chunk.data[1]))
                 file = self.client.available_files[item[0]]
                 chunk = file.chunks[int(item[1])]
                 chunk.data = item[2]
@@ -124,18 +129,20 @@ class FileClientConnection:
                 chunk.status = "done"
                 chunk.lock.release()
                 if len([1 for chnk in file.chunks if chnk.status != "done"]) == 0:
-                    self.client.end_download(self.file.checksum)
+                    self.client.end_download(file.checksum)
             except:
                 pass
                 # queue is empty here
-            await asyncio.sleep(DRAINAGE)
+            await asyncio.sleep(0.01)
 
     async def check_packets(self):
         pass
 
     def datagram_received(self, data, addr):
         message = data.decode()
+        print("received data")
         checksum, offset, *payload = message.split("|")
+        print("offset: " + offset)
         payload = "".join(payload)
         self.client.lock.acquire()
         rwindow = str((self.window_size - self.buffer.qsize()) // self.client.active_peers)
@@ -154,10 +161,13 @@ class FileClientConnection:
 async def start_listener(client):
     loop = asyncio.get_running_loop()
     listener = FileClientConnection(client)
+    print("Client Started")
     transport, protocol = await loop.create_datagram_endpoint(
         lambda: listener,
         local_addr=(SELF_IP, ACK_PORT))
+    print("Queue starting")
     asyncio.ensure_future(listener.queue_handler())
+    print("Queue started")
     try:
         await asyncio.sleep(3600)  # Serve for 1 hour.
     finally:
@@ -165,4 +175,4 @@ async def start_listener(client):
 
 
 def start_download_queue(client):
-    start_new_thread(asyncio.run,(start_listener(client), ))
+    start_new_thread(asyncio.run, (start_listener(client), ))

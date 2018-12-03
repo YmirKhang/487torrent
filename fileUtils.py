@@ -49,10 +49,13 @@ class AvailableFile():
         self.chunks = None
 
     def save_to_shared(self):
-        writer = open(FILE_PATH + self.name, 'wb')
-        for chunk in self.chunks:
-            writer.write(chunk.data)
-        writer.close()
+        with open(FILE_PATH + self.name, 'wb') as writer:
+            for chunk in self.chunks:
+                print("Writing chunk with offset:" + str(chunk.offset))
+                print(chunk.data)
+                writer.write(chunk.data.encode('utf_8'))
+                print("successfully wrote")
+            writer.close()
 
     def add_peer(self, ip):
         self.peers.add(ip)
