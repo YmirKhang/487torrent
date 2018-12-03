@@ -89,7 +89,7 @@ class FileServer:
     def new_file_downloaded(self, filename):
         file = File(filename)
         self.shared_files[file.checksum] = file
-        self.broadcast_available_files()
+        self.broadcast_shared_files()
 
     def add_file(self, filepath):
         if os.path.isfile(filepath):

@@ -88,7 +88,6 @@ class FileClient():
         file.start_download()
         self.lock.acquire()
         self.active_peers += len(file.peers)
-        print("active peers: " + str(self.active_peers))
         self.lock.release()
 
     def end_download(self, checksum):
@@ -97,15 +96,13 @@ class FileClient():
             return
         file.status = "finished"
         self.lock.acquire()
-        print("get lock")
         self.active_peers -= len(file.peers)
         if self.active_peers < 0:
             self.active_peers = 0
         self.lock.release()
         file.save_to_shared()
+        print_notification("Download Finished for: " + self.available_files[checksum].name)
         self.download_finish_callback(self.available_files[checksum].name)
-        print("Download Finished for: " + self.available_files[checksum].name)
-
 
 
 class FileClientConnection:
@@ -145,9 +142,7 @@ class FileClientConnection:
 
     def datagram_received(self, data, addr):
         message = data.decode()
-        print("received data")
         checksum, offset, *payload = message.split("|")
-        print("offset: " + offset)
         payload = "".join(payload)
         self.client.lock.acquire()
         if self.client.active_peers == 0 :

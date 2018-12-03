@@ -49,6 +49,7 @@ class AvailableFile():
         self.chunks = None
 
     def save_to_shared(self):
+        self.status = "finished"
         with open(FILE_PATH + self.name, 'wb') as writer:
             for chunk in self.chunks:
                 print("Writing chunk with offset:" + str(chunk.offset))
