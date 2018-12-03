@@ -7,7 +7,7 @@ from utils import *
 
 fileServer = FileServer()
 fileServer.start()
-fileClient = FileClient(fileServer.send_shared_files)
+fileClient = FileClient(fileServer.send_shared_files, fileServer.new_file_downloaded)
 fileClient.start()
 start_download_queue(fileClient)
 

@@ -86,6 +86,11 @@ class FileServer:
         chunk_thread.setDaemon(True)
         chunk_thread.start()
 
+    def new_file_downloaded(self, filename):
+        file = File(filename)
+        self.shared_files[file.checksum] = file
+        self.broadcast_available_files()
+
     def add_file(self, filepath):
         if os.path.isfile(filepath):
             filename = os.path.basename(filepath)

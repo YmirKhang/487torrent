@@ -12,10 +12,11 @@ from _thread import start_new_thread
 
 
 class FileClient():
-    def __init__(self, send_file_callback):
+    def __init__(self, send_file_callback, download_finish_callback):
         self.available_files = {}
         self.active_peers = 1
         self.send_file_callback = send_file_callback
+        self.download_finish_callback = download_finish_callback
         self.lock = Lock()
 
     def start(self):
@@ -102,7 +103,9 @@ class FileClient():
             self.active_peers = 0
         self.lock.release()
         file.save_to_shared()
+        self.download_finish_callback(self.available_files[checksum].name)
         print("Download Finished for: " + self.available_files[checksum].name)
+
 
 
 class FileClientConnection:
