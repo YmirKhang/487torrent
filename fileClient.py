@@ -7,14 +7,14 @@ from threading import Lock
 from time import sleep
 import asyncio
 from config import *
-from utils import send_packet
+from utils import send_packet, print_notification
 from _thread import start_new_thread
 
 
 class FileClient():
     def __init__(self, send_file_callback):
         self.available_files = {}
-        self.active_peers = 0
+        self.active_peers = 1
         self.send_file_callback = send_file_callback
         self.lock = Lock()
 
@@ -25,6 +25,7 @@ class FileClient():
     def handle_file_definition(self, message):
         source, type, dict = message.split('|')
         file_list = json.loads(dict)
+        print_notification("Received " + str(len(file_list)) + " new files from :" + source)
         for file in file_list:
             if file['checksum'] in self.available_files:
                 self.available_files[file['checksum']].add_peer(source)
@@ -86,17 +87,20 @@ class FileClient():
         file.start_download()
         self.lock.acquire()
         self.active_peers += len(file.peers)
+        print("active peers: " + str(self.active_peers))
         self.lock.release()
 
     def end_download(self, checksum):
         file = self.available_files[checksum]
-        print("download ended")
+        if file.status == "finished":
+            return
         file.status = "finished"
         self.lock.acquire()
         print("get lock")
         self.active_peers -= len(file.peers)
+        if self.active_peers < 0:
+            self.active_peers = 0
         self.lock.release()
-        print("release lock")
         file.save_to_shared()
         print("Download Finished for: " + self.available_files[checksum].name)
 
@@ -119,9 +123,7 @@ class FileClientConnection:
     async def queue_handler(self):
         while True:
             try:
-
                 item = self.buffer.get(block=False)
-                print("received " + str(chunk.data[1]))
                 file = self.client.available_files[item[0]]
                 chunk = file.chunks[int(item[1])]
                 chunk.data = item[2]
@@ -133,7 +135,7 @@ class FileClientConnection:
             except:
                 pass
                 # queue is empty here
-            await asyncio.sleep(0.01)
+            await asyncio.sleep(0.2)
 
     async def check_packets(self):
         pass
@@ -145,7 +147,10 @@ class FileClientConnection:
         print("offset: " + offset)
         payload = "".join(payload)
         self.client.lock.acquire()
-        rwindow = str((self.window_size - self.buffer.qsize()) // self.client.active_peers)
+        if self.client.active_peers == 0 :
+            rwindow = str((self.window_size - self.buffer.qsize()) // 1)
+        else:
+            rwindow = str((self.window_size - self.buffer.qsize()) // self.client.active_peers)
         return_msg = checksum + "|" + offset + "|" + rwindow
         self.client.lock.release()
         self.buffer.put((checksum, offset, payload))
@@ -161,13 +166,10 @@ class FileClientConnection:
 async def start_listener(client):
     loop = asyncio.get_running_loop()
     listener = FileClientConnection(client)
-    print("Client Started")
     transport, protocol = await loop.create_datagram_endpoint(
         lambda: listener,
         local_addr=(SELF_IP, ACK_PORT))
-    print("Queue starting")
     asyncio.ensure_future(listener.queue_handler())
-    print("Queue started")
     try:
         await asyncio.sleep(3600)  # Serve for 1 hour.
     finally:
