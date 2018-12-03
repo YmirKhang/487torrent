@@ -123,6 +123,7 @@ while True:
     elif option == "6":
         clear()
         print_notification("Good bye \n\n")
+        os.system("pkill -9 \"python3 main.py\"")
         sys.exit(0)
     else:
         clear()

@@ -7,7 +7,7 @@ from config import *
 from shutil import copyfile
 import asyncio
 import random
-
+from utils import print_notification
 
 class FileServer:
 
@@ -28,20 +28,29 @@ class FileServer:
 
     def handle_chunk_request(self, message):
         source, file_hash, raw_chunks = message.split('|')
+        print_notification(source + " has requested the file with hash: " + file_hash)
         chunk_list = json.loads(raw_chunks)
 
         is_new = source not in self.active_connections
 
-        if is_new:
+        self.active_connections[source] = FileServerConnection(self.loop)
+        # if is_new:
+        #     self.active_connections[source] = FileServerConnection(self.loop)
+        # elif self.active_connections[source].ended:
+        #     is_new = True
+        #     del self.active_connections[source]
+        #     self.active_connections[source] = FileServerConnection(self.loop)
 
-            self.active_connections[source] = FileServerConnection(self.loop)
+        # if source in self.active_connections and self.active_connections[source].ended:
+        #     del self.active_connections[source]
 
         file_connection = self.active_connections[source]
 
         for chunk in chunk_list:
             file_connection.add_chunk(file_hash, int(chunk), self.shared_files[file_hash].get_chunk(int(chunk)))
-        if is_new:
-            start_new_thread(asyncio.run, (self.start_connection(file_connection, source,),))
+        # if is_new:
+        #     start_new_thread(asyncio.run, (self.start_connection(file_connection, source, ),))
+        start_new_thread(asyncio.run, (self.start_connection(file_connection, source, ),))
 
     async def start_connection(self, connection, source):
         loop = asyncio.get_event_loop()
@@ -65,7 +74,7 @@ class FileServer:
                     while True:
                         data = conn.recv(1024)
                         if not data:
-                            print(message)
+                            # print(message)
                             self.handle_chunk_request(message)
                             # conn.send(b"OK")
                             conn.close()
@@ -91,9 +100,8 @@ class FileServer:
     def broadcast_shared_files(self):
         for i in range(1, 255):
             target_ip = SUBNET + "." + str(i)
-            # TODO: Uncommented for debug purpose
-            # if target_ip != SELF_IP:
-            self.send_shared_files(target_ip, MESSAGE_TYPES['request'])
+            if target_ip != SELF_IP:
+                self.send_shared_files(target_ip, MESSAGE_TYPES['request'])
 
     def send_shared_files(self, target_ip, type):
         message = SELF_IP + "|" + str(type) + "|" + json.dumps([data.get_dict() for data in self.shared_files.values()])
@@ -123,6 +131,7 @@ class SChunk:
     def get_bytes(self):
         return self.get_key().encode() + "|".encode() + self.data
 
+
 class FileServerConnection:
     def __init__(self, loop):
         self.loop = loop
@@ -132,8 +141,9 @@ class FileServerConnection:
         self.chunks = {}
         self.window_lock = threading.Lock()
         self.flight_lock = threading.Lock()
-        #self.on_con_lost = loop.create_future()
+        self.on_con_lost = loop.create_future()
         self.started = False
+        self.ended = False
 
     def set_window_size(self, value):
         self.window_lock.acquire()
@@ -154,7 +164,14 @@ class FileServerConnection:
         chunk = SChunk(file_hash, offset, data)
         self.chunks[chunk.get_key()] = chunk
         if self.started:
-            asyncio.ensure_future(self.try_send(chunk, TRY_COUNT))
+            try:
+                asyncio.ensure_future(self.try_send(chunk, TRY_COUNT))
+            except:
+                return
+            # if asyncio.get_running_loop():
+            #     asyncio.ensure_future(self.try_send(chunk, TRY_COUNT))
+            # else:
+            #     return
 
     def start(self):
         self.started = True
@@ -164,7 +181,7 @@ class FileServerConnection:
     async def probe(self):
         self.window_lock.acquire()
         if self.window_size <= TOLERANCE:
-            print("Probing")
+            # print("Probing")
             self.transport.sendto("probe".encode())
         self.window_lock.release()
         await asyncio.sleep(1)
@@ -183,7 +200,12 @@ class FileServerConnection:
             # print("Try chunk #" + str(chunk) + " for " + str(self.try_count + 1 - count) + " times")
             chunk.status = "flight"
             self.inc_flight()
-            self.transport.sendto(chunk.get_bytes())
+            # print("sending: " + str(chunk.offset))
+            try:
+                self.transport.sendto(chunk.get_bytes())
+            except:
+                pass
+                # print("error: " + str(chunk.offset))
             await asyncio.sleep(1)
             if chunk.status != "done":
                 chunk.status = "new"
@@ -196,15 +218,17 @@ class FileServerConnection:
         asyncio.create_task(self.probe())
 
     def error_received(self, exc):
-        print('Error received:', exc)
+        pass
+        # print('Error received:', exc)
 
     def connection_lost(self, exc):
-        print("Connection closed")
-        #self.on_con_lost.set_result(True)
+        # print("Connection closed")
+        self.on_con_lost.set_result(True)
+        self.ended = True
 
     def check_if_complete(self):
         if not bool(self.chunks):
-            print("Done")
+            # print("Done")
             self.transport.close()
 
     def datagram_received(self, data, addr):
@@ -212,9 +236,9 @@ class FileServerConnection:
 
         hash, chunk_num, window_size = message.split('|')
         self.set_window_size(int(window_size))
-        print("ACK for: " + chunk_num)
+        # print("ACK for: " + chunk_num)
         if chunk_num == "-1":
-            print("Probe returned")
+            # print("Probe returned")
             return
 
         self.chunks[hash + "|" + chunk_num].status = "done"
