@@ -9,6 +9,7 @@ import asyncio
 from config import *
 from utils import send_packet, print_notification
 from _thread import start_new_thread
+import base64
 
 
 class FileClient():
@@ -64,7 +65,6 @@ class FileClient():
                         if len(requested_chunks) == 0:
                             continue
                         self.send_chunk_request(peer, file.checksum, requested_chunks)
-
 
     def send_chunk_request(self, target_ip, checksum, chunks):
         message = SELF_IP + "|" + checksum + "|" + json.dumps([chunk.offset for chunk in chunks])
@@ -135,7 +135,7 @@ class FileClientConnection:
             except:
                 pass
                 # queue is empty here
-            await asyncio.sleep(0.2)
+            await asyncio.sleep(DRAINAGE)
 
     async def check_packets(self):
         pass
@@ -144,14 +144,18 @@ class FileClientConnection:
         message = data.decode()
         checksum, offset, *payload = message.split("|")
         payload = "".join(payload)
+        # print(checksum)
+        # print(offset)
         self.client.lock.acquire()
-        if self.client.active_peers == 0 :
+        if self.client.active_peers == 0:
             rwindow = str((self.window_size - self.buffer.qsize()) // 1)
         else:
             rwindow = str((self.window_size - self.buffer.qsize()) // self.client.active_peers)
         return_msg = checksum + "|" + offset + "|" + rwindow
         self.client.lock.release()
-        self.buffer.put((checksum, offset, payload))
+        if offset != "-1":
+            data = base64.b64decode(payload)
+            self.buffer.put((checksum, offset, data))
         self.transport.sendto(return_msg.encode(), addr)
 
     def send_chunk_request(self, target_ip, chunks):
@@ -175,4 +179,4 @@ async def start_listener(client):
 
 
 def start_download_queue(client):
-    start_new_thread(asyncio.run, (start_listener(client), ))
+    start_new_thread(asyncio.run, (start_listener(client),))

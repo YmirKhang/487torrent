@@ -51,7 +51,7 @@ class AvailableFile():
         with open(FILE_PATH + self.name, 'wb') as writer:
             for chunk in self.chunks:
                 print("Writing chunk with offset:" + str(chunk.offset))
-                writer.write(chunk.data.encode('utf_8'))
+                writer.write(chunk.data)
                 print("successfully wrote")
             writer.close()
 
