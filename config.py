@@ -20,10 +20,10 @@ CHUNK_PORT = 5001  # TCP
 FILE_PORT = 5001  # UDP
 ACK_PORT = 5001  # UDP
 
-DEFAULT_WINDOW_SIZE = 150  # Window size
+DEFAULT_WINDOW_SIZE = 250  # Window size
 TRY_COUNT = 5  # Number of trials before giving up sending the packet
 TOLERANCE = 3  # The limit of packet count tolerated before reaching window size
-DRAINAGE = 0.05  # The timeout between the packets are processed from the queue (To simulate window size)
+DRAINAGE = 0.01  # The timeout between the packets are processed from the queue (To simulate window size)
 
 SUBNET = SELF_IP[:SELF_IP.rfind('.')]
 
